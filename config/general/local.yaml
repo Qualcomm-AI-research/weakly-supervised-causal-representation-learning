@@ -1,0 +1,15 @@
+exp_name: ???
+run_name: null
+
+base_dir: ???
+exp_dir: '${general.base_dir}/${general.exp_name}'
+overwrite_existing: true
+
+mlflow:
+  db: '${general.base_dir}/mlflow.db'
+  artifacts: '${general.base_dir}/artifacts'
+
+debug: false
+verbose: true
+
+seed: ???

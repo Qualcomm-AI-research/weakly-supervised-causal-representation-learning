@@ -1,0 +1,115 @@
+batchsize: 64
+epochs: 3
+
+clip_grad_norm: 10.0
+iwae_samples: 10
+
+full_likelihood: false
+likelihood_reduction: sum
+
+early_stopping: false
+early_stopping_var: loss
+
+pretrain_epochs: 1
+pretrain_beta: 0.001
+
+model_interventions_after_epoch: 1
+freeze_encoder_epoch: 1000
+deterministic_intervention_encoder_after_epoch: 2
+fix_topological_order_epoch: 1000
+
+graph_sampling:
+  mode: deterministic  # {'deterministic', 'hard', 'soft'}
+  temperature: 1.0
+  samples: 1
+
+  initial:
+    unfreeze_epoch: 0
+
+  final:
+    freeze_epoch: 1000
+    mode: deterministic
+    temperature: 1.0
+    samples: 1
+
+lr_schedule:
+  type: 'constant'
+  initial: 3e-4
+  minimal: 3e-4
+  restart_every_epochs: 1
+  increase_period_by_factor: 1
+  step_every_epochs: 0
+  step_gamma: 0.1
+
+manifold_thickness_schedule:
+  type: 'constant'
+  initial: 0.01
+  final: 0.01
+  initial_constant_epochs: 5
+  decay_epochs: 45
+
+beta_schedule:
+  type: 'constant'
+  initial: 1.0
+  final: 1.0
+  initial_constant_epochs: 10
+  decay_epochs: 10
+
+increase_intervention_beta: 1.0
+
+z_regularization_schedule:
+  type: 'constant'
+  initial: 0
+  final: 0
+  initial_constant_epochs: 10
+  decay_epochs: 10
+
+edge_regularization_schedule:
+  type: 'constant'
+  initial: 0
+  final: 0
+  initial_constant_epochs: 0
+  decay_epochs: 0
+
+cyclicity_regularization_schedule:
+  type: 'constant'
+  initial: 0
+  final: 0
+  initial_constant_epochs: 0
+  decay_epochs: 0
+
+consistency_regularization_schedule:
+  type: 'constant'
+  initial: 0
+  final: 0
+  initial_constant_epochs: 0
+  decay_epochs: 0
+
+inverse_consistency_regularization_schedule:
+  type: 'constant'
+  initial: 0
+  final: 0
+  initial_constant_epochs: 0
+  decay_epochs: 0
+
+intervention_entropy_regularization_schedule:
+  type: 'constant'
+  initial: 1.0
+  final: 1.0
+  initial_constant_epochs: 0
+  decay_epochs: 0
+
+intervention_encoder_offset_schedule:
+  type: 'constant'
+  initial: 1.e-4
+  final: 1.e-4
+  initial_constant_epochs: 10
+  decay_epochs: 10
+
+device: 'cuda'
+
+log_every_n_steps: 10
+print_every_n_steps: 10
+validate_every_n_steps: 0
+plot_every_n_steps: 0
+save_model_every_n_steps: 0

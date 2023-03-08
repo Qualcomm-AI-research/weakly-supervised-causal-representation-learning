@@ -1,0 +1,9 @@
+defaults:
+  - general: local
+  - data: causalcircuit_raw
+  - model: causalcircuit_reduce_dim
+  - training: causalcircuit_reduce_dim
+  - eval: default
+  - plotting: default
+  - hydra
+  - _self_  # Ensures that entries in this file overwrite everything references above, even in hydra <= 1.0

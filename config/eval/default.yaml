@@ -1,0 +1,15 @@
+eval_partition: test
+
+iwae_samples: 10
+batchsize: 32
+
+beta: 1.0
+full_likelihood: false
+likelihood_reduction: sum
+
+enco_lambda: 0.01
+
+graph_sampling:
+  mode: deterministic  # {'deterministic', 'hard', 'soft'}
+  temperature: 1.0
+  samples: 1

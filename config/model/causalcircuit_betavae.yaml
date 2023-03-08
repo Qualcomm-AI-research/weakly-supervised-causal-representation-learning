@@ -1,0 +1,26 @@
+type: causal_vae
+dim_x: ${data.dim_x}
+dim_z: ${data.dim_z}
+overwrite_latents: false
+
+averaging_strategy: stochastic
+
+scm:
+  type: unstructured
+  manifold_thickness: 0.01
+
+encoder:
+  type: mlp
+  flip: false
+  hidden_units: 64
+  hidden_layers: 5
+  std: 0.01
+  min_std: 0.0001
+  fix_std: false
+
+decoder:
+  hidden_units: 64
+  hidden_layers: 5
+  std: 1.0
+  min_std: 0.001
+  fix_std: true

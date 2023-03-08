@@ -1,0 +1,43 @@
+# PyCharm
+.idea
+
+# MAC OS
+.DS_Store
+
+# pytest
+.coverage
+.pytest
+.pytest_cache
+
+# Python
+*__pycache__*
+*.py[cod]
+*.cpython-36.pyc
+*.egg-info
+
+# Temporary files
+docker/contrastive_causal_representation_learning_*.conf
+
+# IDM
+docker/requirements-local.txt
+
+# Patches (not to be committed by mistake)
+*.patch
+
+# LSF tests
+tests_cluster/logs
+
+# Notebooks
+*.ipynb
+
+# Plots
+*.pdf
+*.png
+*.jpg
+
+# Hidden files
+.*
+!.gitignore
+
+# Outdated files
+old/

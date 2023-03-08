@@ -1,0 +1,8 @@
+dataset: causalcircuit
+type: compressed
+
+dim_x: [512, 512, 3]
+dim_z: 4
+noise: 0
+
+data_dir: '${general.base_dir}/data/${dataset}'

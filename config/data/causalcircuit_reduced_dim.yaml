@@ -1,0 +1,8 @@
+dataset: causalbox_latents
+
+dim_x: 8
+dim_z: 4
+
+noise: 0
+
+data_dir: ???
