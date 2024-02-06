@@ -137,14 +137,6 @@ class VAEMetrics(nn.Module):
             )
 
         if (
-            inverse_consistency_regularization_amount is not None
-            and "inverse_consistency_mse" in model_outputs
-        ):
-            loss += inverse_consistency_regularization_amount * torch.mean(
-                model_outputs["inverse_consistency_mse"]
-            )
-
-        if (
             intervention_entropy_regularization_amount is not None
             and intervention_posterior is not None
         ):
