@@ -28,7 +28,7 @@ docker/requirements-local.txt
 tests_cluster/logs
 
 # Notebooks
-*.ipynb
+# *.ipynb
 
 # Plots
 *.pdf
