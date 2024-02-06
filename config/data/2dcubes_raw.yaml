@@ -1,0 +1,15 @@
+dataset: 2dcubes
+type: compressed
+
+dim_x: [128, 128, 3]
+# dim_x: [64, 64, 3]
+dim_z: 6
+noise: 0
+
+x_mean: [72.14436875, 70.34255671, 69.98696503]
+x_std: [19.72906498, 15.26036419, 11.16379288]
+
+x_min: [2, 2, 23]
+x_max: [228, 226, 224]
+
+data_dir: '${general.base_dir}/data/${data.dataset}'

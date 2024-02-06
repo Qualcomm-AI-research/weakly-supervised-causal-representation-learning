@@ -1,5 +1,5 @@
 batchsize: 64
-epochs: 120
+epochs: 750
 
 clip_grad_norm: 10.0
 iwae_samples: 10
@@ -10,13 +10,13 @@ likelihood_reduction: sum
 early_stopping: false
 early_stopping_var: loss
 
-pretrain_epochs: 20
+pretrain_epochs: 40
 pretrain_beta: 0.001
 
-model_interventions_after_epoch: 40
+model_interventions_after_epoch: 250
 freeze_encoder_epoch: 1000
-deterministic_intervention_encoder_after_epoch: 80
-fix_topological_order_epoch: 80
+deterministic_intervention_encoder_after_epoch: 500
+fix_topological_order_epoch: 500
 
 graph_sampling:
   mode: deterministic  # {'deterministic', 'hard', 'soft'}
@@ -36,7 +36,7 @@ lr_schedule:
   type: 'cosine_restarts_reset'
   initial: 0.0008
   minimal: 1.e-8
-  restart_every_epochs: 40
+  restart_every_epochs: 250
   increase_period_by_factor: 1
   step_every_epochs: 0
   step_gamma: 0.1

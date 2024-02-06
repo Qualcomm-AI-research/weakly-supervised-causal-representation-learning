@@ -1,0 +1,10 @@
+defaults:
+  - general: local
+  - preprocessing: 2dcubes
+  - data: 2dcubes_grayscale_shapes_large_child_noise_raw
+  - model: 2dcubes_complete_ilcm_sbd
+  - training: 2dcubes_complete_ilcm_short
+  - eval: default
+  - plotting: default
+  - hydra
+  - _self_  # Ensures that entries in this file overwrite everything references above, even in hydra <= 1.0

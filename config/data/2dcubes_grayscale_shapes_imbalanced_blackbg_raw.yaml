@@ -1,0 +1,15 @@
+dataset: 2dcubes_grayscale_shapes_imbalanced_blackbg
+type: compressed
+
+# dim_x: [128, 128, 3]
+dim_x: [64, 64, 3]
+dim_z: 6
+noise: 0
+
+x_mean: [7.92047832, 7.91722268, 7.9148093]
+x_std: [38.38946765, 38.37858911, 38.36694802]
+
+x_min: [0, 0, 0]
+x_max: [227, 227, 228]
+
+data_dir: '${general.base_dir}/data/${data.dataset}'

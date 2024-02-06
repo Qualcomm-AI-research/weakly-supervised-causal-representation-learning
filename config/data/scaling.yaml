@@ -1,16 +1,19 @@
 dataset: scaling
 subset: 'dim_${data.dim_z}_mode_${data.nature.mode}_seed_${data.nature.seed}'
 
-dim_z: 2  # Tested with 2...30
+dim_z: 3  # Tested with 2...30
 dim_x: ${data.dim_z}
 
 data_dir: '${general.base_dir}/data/${data.dataset}/${data.subset}'
 always_generate_new_data: false
 
 samples:
-  train: 100000
-  val: 10000
-  test: 10000
+  # train: 100000
+  train: 10000
+  # val: 10000
+  val: 1000
+  # test: 10000
+  test: 1000
 
 nature:
   mode: random  # {full, random, chain}

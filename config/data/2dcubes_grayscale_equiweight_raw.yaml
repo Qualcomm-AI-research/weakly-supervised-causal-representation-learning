@@ -1,0 +1,15 @@
+dataset: 2dcubes_grayscale_equiweight
+type: compressed
+
+dim_x: [128, 128, 3]
+# dim_x: [64, 64, 3]
+dim_z: 6
+noise: 0
+
+x_mean: [78.44064798, 78.45486064, 78.40535461]
+x_std: [33.25971187, 33.25113537, 33.24289225]
+
+x_min: [66, 64, 63]
+x_max: [226, 226, 226]
+
+data_dir: '${general.base_dir}/data/${data.dataset}'

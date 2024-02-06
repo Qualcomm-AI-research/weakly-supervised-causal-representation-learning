@@ -1,0 +1,15 @@
+dataset: 2dcubes_equiscale_whitebg
+type: compressed
+
+dim_x: [128, 128, 3]
+# dim_x: [64, 64, 3]
+dim_z: 6
+noise: 0
+
+x_mean: [246.37401655, 246.43233052, 246.95801951]
+x_std: [40.92203885, 40.59856351, 38.37894814]
+
+x_min: [9,  8, 26]
+x_max: [255, 255, 255]
+
+data_dir: '${general.base_dir}/data/${data.dataset}'

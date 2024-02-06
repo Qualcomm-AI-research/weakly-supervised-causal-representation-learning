@@ -1,0 +1,11 @@
+defaults:
+  - general: local
+  - data: 2dcubes_reduced_dim
+  - model: 2dcubes_ilcm
+  - training: 2dcubes_ilcm_long
+  # - model: scaling_ilcm
+  # - training: scaling
+  - eval: default
+  - plotting: default
+  - hydra
+  - _self_  # Ensures that entries in this file overwrite everything references above, even in hydra <= 1.0

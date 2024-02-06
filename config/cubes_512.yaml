@@ -1,0 +1,9 @@
+defaults:
+  - general: local
+  - data: cubes_512
+  - model: cubes_512_ilcm
+  - training: cubes_512_ilcm
+  - eval: default
+  - plotting: default
+  - hydra
+  - _self_  # Ensures that entries in this file overwrite everything references above, even in hydra <= 1.0

@@ -1,5 +1,5 @@
 batchsize: 64
-epochs: 120
+epochs: 90
 
 clip_grad_norm: 10.0
 iwae_samples: 10
@@ -10,13 +10,13 @@ likelihood_reduction: sum
 early_stopping: false
 early_stopping_var: loss
 
-pretrain_epochs: 20
+pretrain_epochs: 10
 pretrain_beta: 0.001
 
-model_interventions_after_epoch: 40
+model_interventions_after_epoch: 30
 freeze_encoder_epoch: 1000
-deterministic_intervention_encoder_after_epoch: 80
-fix_topological_order_epoch: 80
+deterministic_intervention_encoder_after_epoch: 60
+fix_topological_order_epoch: 1000
 
 graph_sampling:
   mode: deterministic  # {'deterministic', 'hard', 'soft'}
@@ -34,9 +34,9 @@ graph_sampling:
 
 lr_schedule:
   type: 'cosine_restarts_reset'
-  initial: 0.0008
+  initial: 3e-4
   minimal: 1.e-8
-  restart_every_epochs: 40
+  restart_every_epochs: 30
   increase_period_by_factor: 1
   step_every_epochs: 0
   step_gamma: 0.1
@@ -51,9 +51,9 @@ manifold_thickness_schedule:
 beta_schedule:
   type: 'constant_linear_constant'
   initial: 0.0
-  final: 3e-5
-  initial_constant_epochs: 20
-  decay_epochs: 20
+  final: 1.0
+  initial_constant_epochs: 10
+  decay_epochs: 10
 
 increase_intervention_beta: 1.0
 
@@ -61,8 +61,8 @@ z_regularization_schedule:
   type: 'constant_linear_constant'
   initial: 0.01
   final: 0
-  initial_constant_epochs: 20
-  decay_epochs: 20
+  initial_constant_epochs: 10
+  decay_epochs: 10
 
 edge_regularization_schedule:
   type: 'constant'
@@ -94,8 +94,8 @@ inverse_consistency_regularization_schedule:
 
 intervention_entropy_regularization_schedule:
   type: 'constant'
-  initial: 0.2
-  final: 0.2
+  initial: 1.0
+  final: 1.0
   initial_constant_epochs: 0
   decay_epochs: 0
 
@@ -103,13 +103,13 @@ intervention_encoder_offset_schedule:
   type: 'constant_exponential_constant'
   initial: 0.025
   final: 1.e-4
-  initial_constant_epochs: 20
-  decay_epochs: 20
+  initial_constant_epochs: 10
+  decay_epochs: 10
 
 device: 'cuda:1'
 
 log_every_n_steps: 1000
 print_every_n_steps: 2000
-validate_every_n_steps: 10000
-plot_every_n_steps: 100000
+validate_every_n_steps: 1000
+plot_every_n_steps: 0
 save_model_every_n_steps: 10000

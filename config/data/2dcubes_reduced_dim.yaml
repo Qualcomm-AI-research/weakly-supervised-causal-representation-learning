@@ -1,0 +1,15 @@
+# TODO: fill in the data_dir
+dataset: causalbox_latents
+
+dim_x: 6
+dim_z: 6
+
+noise: 0
+
+normalize: true
+x1_mean: null
+x2_mean: null
+x1_std: null
+x2_std: null
+
+data_dir: ???

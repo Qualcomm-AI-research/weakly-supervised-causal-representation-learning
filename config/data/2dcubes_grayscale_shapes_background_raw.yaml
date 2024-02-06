@@ -1,0 +1,15 @@
+dataset: 2dcubes_grayscale_shapes_background
+type: compressed
+
+dim_x: [128, 128, 3]
+# dim_x: [64, 64, 3]
+dim_z: 6
+noise: 0
+
+x_mean: [131.13578305, 129.16964657, 129.18945373]
+x_std: [97.4241087 , 97.42717118, 97.45394024]
+
+x_min: [0, 0, 0]
+x_max: [255, 255, 255]
+
+data_dir: '${general.base_dir}/data/${data.dataset}'

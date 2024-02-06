@@ -1,0 +1,15 @@
+dataset: 2dcubes_grayscale_shapes_large_child_noise
+type: compressed
+
+# dim_x: [128, 128, 3]
+dim_x: [64, 64, 3]
+dim_z: 6
+noise: 0
+
+x_mean: [71.62466594, 71.63729696, 71.59181688]
+x_std: [13.95051623, 13.9519367 , 13.94027107]
+
+x_min: [61, 63, 62]
+x_max: [223, 223, 223]
+
+data_dir: '${general.base_dir}/data/${data.dataset}'

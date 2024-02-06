@@ -1,0 +1,10 @@
+defaults:
+  - general: local
+  - preprocessing: 2dcubes
+  - data: 2dcubes_grayscale_shapes_imbalanced_blackbg_raw
+  - model: 2dcubes_reduce_dim_sbd
+  - training: 2dcubes_reduce_dim_simple
+  - eval: default
+  - plotting: default
+  - hydra
+  - _self_  # Ensures that entries in this file overwrite everything references above, even in hydra <= 1.0

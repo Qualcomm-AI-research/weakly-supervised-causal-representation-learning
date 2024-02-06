@@ -1,0 +1,42 @@
+type: intervention_noise_vae
+dim_x: ${data.dim_x}
+dim_z: 6
+overwrite_latents: false
+
+averaging_strategy: stochastic
+
+scm:
+  type: mlp
+  homoskedastic: false
+  adjacency_matrix: none
+  manifold_thickness: 0.01
+  hidden_units: 8
+  hidden_layers: 2
+  min_std: 0.2
+
+encoder:
+  type: conv
+  hidden_channels: 64
+  batchnorm: false
+  coordinate_embeddings: false
+  extra_mlp_layers: 1
+  extra_mlp_hidden_units: 256
+  elementwise_layers: 0
+  elementwise_hidden_units: 16
+  min_std: 1.e-3
+  permutation: 0
+
+decoder:
+  type: sbd
+  hidden_channels: 64
+  min_std: 1.0
+  fix_std: true
+  batchnorm: false
+  coordinate_embeddings: false
+  extra_mlp_layers: 0
+  extra_mlp_hidden_units: 64
+  elementwise_layers: 0
+  elementwise_hidden_units: 8
+
+intervention_encoder:
+  type: learnable_heuristic

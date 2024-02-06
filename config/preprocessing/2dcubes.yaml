@@ -1,0 +1,6 @@
+normalization:
+  # type: minmax # minmax, standard, none
+  type: minmax
+
+flatten: false # flatten the data to 1D
+resize: [64, 64]

@@ -1,0 +1,15 @@
+dataset: 2dcubes_grayscale
+type: compressed
+
+dim_x: [128, 128, 3]
+# dim_x: [64, 64, 3]
+dim_z: 6
+noise: 0
+
+x_mean: [74.85658816, 74.87184398, 74.82478371]
+x_std: [24.92734109, 24.92221501, 24.91260019]
+
+x_min: [65, 64, 62]
+x_max: [226, 226, 226]
+
+data_dir: '${general.base_dir}/data/${data.dataset}'

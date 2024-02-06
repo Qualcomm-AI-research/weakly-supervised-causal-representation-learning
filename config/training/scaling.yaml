@@ -106,7 +106,7 @@ intervention_encoder_offset_schedule:
   initial_constant_epochs: 10
   decay_epochs: 10
 
-device: 'cuda'
+device: 'cuda:1'
 
 log_every_n_steps: 1000
 print_every_n_steps: 2000

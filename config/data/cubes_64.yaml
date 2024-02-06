@@ -1,0 +1,7 @@
+dataset: 3node_64_png
+
+dim_x: [64, 64, 3]
+dim_z: 3
+noise: 0
+
+data_dir: '${general.base_dir}/data/${data.dataset}'

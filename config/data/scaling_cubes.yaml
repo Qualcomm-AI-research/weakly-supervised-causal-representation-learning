@@ -1,0 +1,35 @@
+dataset: scaling
+subset: 'dim_${data.dim_z}_mode_${data.nature.mode}_seed_${data.nature.seed}_trainsize_${data.samples.train}_${data.nature.noise}_scale_${data.nature.noise_scale}_child_scale_${data.nature.child_noise_scale}_cube_movement_${data.nature.cube_movement}'
+
+dim_z: 6
+dim_x: ${data.dim_z}
+
+data_dir: '${general.base_dir}/data/${data.dataset}/${data.subset}'
+# data_dir: '${general.base_dir}/data/3node_64_png_decoded_flat'
+always_generate_new_data: True
+
+normalize: false
+x1_mean: null
+x2_mean: null
+x1_std: null
+x2_std: null
+
+samples:
+  train: 10000
+  # train: 10000
+  val: 1000
+  # val: 1000
+  test: 1000
+  # test: 1000
+
+nature:
+  cube_movement: "2d"
+  mode: random  # {full, random, chain}
+  seed: ???
+  causal_effects: bimodal
+  manifold_thickness: 1.e-9
+  observation_noise: null
+  noise: uniform # {gaussian, uniform}
+  noise_scale: 1.0
+  child_noise_scale: 0.05
+  # child_noise_scale: 1.0
