@@ -14,7 +14,7 @@ from collections import defaultdict
 from PIL import Image
 from io import BytesIO
 
-from ws_crl.encoder import ImageEncoder, ImageDecoder, CoordConv2d
+from ws_crl.encoder import ImageResNetEncoder, ImageResNetDecoder, CoordConv2d
 
 from ws_crl.training import VAEMetrics
 from ws_crl.causal.scm import (
@@ -204,7 +204,7 @@ def create_encoder_decoder(cfg):
     logger.info(f"Creating {cfg.model.encoder.type} encoder / decoder")
 
     if cfg.model.encoder.type == "conv":
-        encoder = ImageEncoder(
+        encoder = ImageResNetEncoder(
             in_resolution=cfg.model.dim_x[0],
             in_features=cfg.model.dim_x[2],
             out_features=cfg.model.dim_z,
@@ -218,7 +218,7 @@ def create_encoder_decoder(cfg):
             min_std=cfg.model.encoder.min_std,
             permutation=cfg.model.encoder.permutation,
         )
-        decoder = ImageDecoder(
+        decoder = ImageResNetDecoder(
             in_features=cfg.model.dim_z,
             out_resolution=cfg.model.dim_x[0],
             out_features=cfg.model.dim_x[2],

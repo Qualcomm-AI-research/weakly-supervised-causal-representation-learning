@@ -45,6 +45,46 @@ class CoordConv2d(nn.Module):
         return self.conv(add_coords(x))
 
 
+class Tile(nn.Module):
+    """
+    Tile a tensor by a factor of tile_resolution in both dimensions
+    """
+
+    def __init__(self, tile_resolution):
+        super().__init__()
+        self.tile_resolution = tile_resolution
+
+    def forward(self, x):
+        x = x.expand(-1, -1, self.tile_resolution, self.tile_resolution)
+        return x
+
+
+class AddCoords(nn.Module):
+    """
+    Add coordinate encodings to a tensor
+    """
+    def __init__(self, h, w) -> None:
+        super().__init__()
+        x = torch.linspace(-1, 1, h)
+        y = torch.linspace(-1, 1, w)
+        x_grid, y_grid = torch.meshgrid(x, y, indexing="ij")
+        # Add as constant, with extra dims for N and C
+        self.register_buffer("x_grid", (x_grid.view((1, 1) + x_grid.shape)).clone())
+        self.register_buffer("y_grid", (y_grid.view((1, 1) + y_grid.shape)).clone())
+
+    def forward(self, x):
+        batch_size, _, _, _ = x.shape
+        x = torch.cat(
+            (
+                self.x_grid.expand(batch_size, -1, -1, -1),
+                self.y_grid.expand(batch_size, -1, -1, -1),
+                x,
+            ),
+            dim=1,
+        )
+        return x
+
+
 class ResNetDown(nn.Module):
     """
     Residual down sampling block for the encoder
@@ -143,7 +183,7 @@ def vector_to_gaussian(x, min_std=0.0, fix_std=False):
     return mu, std
 
 
-class ImageEncoder(nn.Module):
+class BaseImageEncoder(nn.Module):
     """
     Encoder block
     Built for a 3x64x64 image and will result in a latent vector of size z
@@ -151,13 +191,7 @@ class ImageEncoder(nn.Module):
 
     def __init__(
         self,
-        in_features,
         out_features,
-        in_resolution=64,
-        hidden_features=64,
-        batchnorm=True,
-        batchnorm_epsilon=0.1,
-        conv_class=nn.Conv2d,
         mlp_layers=0,
         mlp_hidden=64,
         min_std=0.0,
@@ -166,18 +200,6 @@ class ImageEncoder(nn.Module):
         permutation=0,
     ):
         super().__init__()
-
-        self.net = self._make_conv_net(
-            batchnorm,
-            batchnorm_epsilon,
-            conv_class,
-            hidden_features,
-            in_features,
-            mlp_hidden,
-            mlp_layers,
-            out_features,
-            in_resolution,
-        )
 
         hidden_units = [mlp_hidden] * mlp_layers + [2 * out_features]
         self.mlp = make_mlp(hidden_units, activation="leaky_relu", initial_activation="leaky_relu")
@@ -191,57 +213,6 @@ class ImageEncoder(nn.Module):
             self.permutation = None
         else:
             self.permutation = generate_permutation(out_features, permutation, inverse=False)
-
-    def _make_conv_net(
-        self,
-        batchnorm,
-        batchnorm_epsilon,
-        conv_class,
-        hidden_features,
-        in_features,
-        mlp_hidden,
-        mlp_layers,
-        out_features,
-        in_resolution,
-    ):
-
-        net_out_features = mlp_hidden if mlp_layers > 0 else 2 * out_features
-        kwargs = {
-            "batchnorm": batchnorm,
-            "batchnorm_epsilon": batchnorm_epsilon,
-            "conv_class": conv_class,
-        }
-
-        if in_resolution == 64:
-            net = nn.Sequential(
-                ResNetDown(in_features, hidden_features, **kwargs),
-                ResNetDown(hidden_features, 2 * hidden_features, **kwargs),
-                ResNetDown(2 * hidden_features, 4 * hidden_features, **kwargs),
-                ResNetDown(4 * hidden_features, 8 * hidden_features, **kwargs),
-                ResNetDown(8 * hidden_features, 8 * hidden_features, **kwargs),
-                ResNetDown(8 * hidden_features, 8 * hidden_features, **kwargs),
-                conv_class(8 * hidden_features, net_out_features, 1),
-            )
-        elif in_resolution == 512:
-            net = nn.Sequential(
-                ResNetDown(in_features, hidden_features, **kwargs),
-                ResNetDown(hidden_features, 2 * hidden_features, **kwargs),
-                ResNetDown(2 * hidden_features, 4 * hidden_features, **kwargs),
-                ResNetDown(4 * hidden_features, 8 * hidden_features, **kwargs),
-                ResNetDown(8 * hidden_features, 16 * hidden_features, **kwargs),
-                ResNetDown(16 * hidden_features, 32 * hidden_features, **kwargs),
-                ResNetDown(32 * hidden_features, 32 * hidden_features, **kwargs),
-                ResNetDown(32 * hidden_features, 32 * hidden_features, **kwargs),
-                ResNetDown(32 * hidden_features, 32 * hidden_features, **kwargs),
-                conv_class(32 * hidden_features, net_out_features, 1),
-            )
-
-        else:
-            raise NotImplementedError(
-                f"Haven't implemented convolutional encoder for resolution {in_resolution}"
-            )
-
-        return net
 
     def forward(
         self,
@@ -300,7 +271,227 @@ class ImageEncoder(nn.Module):
         return self.elementwise.parameters()
 
 
-class ImageDecoder(nn.Module):
+class ImageConvEncoder(BaseImageEncoder):
+    def __init__(
+        self,
+        in_features,
+        out_features,
+        in_resolution=64,
+        hidden_features=64,
+        conv_class=nn.Conv2d,
+        mlp_layers=0,
+        mlp_hidden=64,
+        min_std=0.0,
+        elementwise_layers=1,
+        elementwise_hidden=16,
+        permutation=0,
+    ):
+        super().__init__(
+            out_features,
+            mlp_layers,
+            mlp_hidden,
+            min_std,
+            elementwise_layers,
+            elementwise_hidden,
+            permutation,
+        )
+
+        self.net = self._make_conv_net(
+            conv_class,
+            hidden_features,
+            in_features,
+            mlp_hidden,
+            mlp_layers,
+            out_features,
+            in_resolution,
+        )
+
+    def _make_conv_net(
+        self,
+        conv_class,
+        hidden_features,
+        in_features,
+        mlp_hidden,
+        mlp_layers,
+        out_features,
+        in_resolution,
+    ):
+        net_out_features = mlp_hidden if mlp_layers > 0 else 2 * out_features
+        kwargs = {
+            "padding": 1,
+            "kernel_size": 3,
+            "stride": 2,
+        }
+
+        if in_resolution == 64:
+            net = nn.Sequential(
+                conv_class(in_features, hidden_features, **kwargs),
+                nn.LeakyReLU(),
+                conv_class(hidden_features, 2 * hidden_features, **kwargs),
+                nn.LeakyReLU(),
+                conv_class(2 * hidden_features, 4 * hidden_features, **kwargs),
+                nn.LeakyReLU(),
+                conv_class(4 * hidden_features, 8 * hidden_features, **kwargs),
+                nn.LeakyReLU(),
+                conv_class(8 * hidden_features, 8 * hidden_features, **kwargs),
+                nn.LeakyReLU(),
+                conv_class(8 * hidden_features, 8 * hidden_features, **kwargs),
+                # conv_class(8 * hidden_features, 16 * hidden_features, **kwargs),
+                nn.LeakyReLU(),
+                conv_class(8 * hidden_features, net_out_features, 1),
+                # conv_class(16 * hidden_features, net_out_features, 1),
+            )
+        elif in_resolution == 128:
+            net = nn.Sequential(
+                conv_class(in_features, hidden_features, **kwargs),
+                nn.LeakyReLU(),
+                conv_class(hidden_features, 2 * hidden_features, **kwargs),
+                nn.LeakyReLU(),
+                conv_class(2 * hidden_features, 4 * hidden_features, **kwargs),
+                nn.LeakyReLU(),
+                conv_class(4 * hidden_features, 8 * hidden_features, **kwargs),
+                nn.LeakyReLU(),
+                conv_class(8 * hidden_features, 16 * hidden_features, **kwargs),
+                nn.LeakyReLU(),
+                conv_class(16 * hidden_features, 16 * hidden_features, **kwargs),
+                nn.LeakyReLU(),
+                conv_class(16 * hidden_features, 16 * hidden_features, **kwargs),
+                nn.LeakyReLU(),
+                conv_class(16 * hidden_features, net_out_features, 1),
+            )
+        elif in_resolution == 512:
+            net = nn.Sequential(
+                conv_class(in_features, hidden_features, **kwargs),
+                nn.LeakyReLU(),
+                conv_class(hidden_features, 2 * hidden_features, **kwargs),
+                nn.LeakyReLU(),
+                conv_class(2 * hidden_features, 4 * hidden_features, **kwargs),
+                nn.LeakyReLU(),
+                conv_class(4 * hidden_features, 8 * hidden_features, **kwargs),
+                nn.LeakyReLU(),
+                conv_class(8 * hidden_features, 16 * hidden_features, **kwargs),
+                nn.LeakyReLU(),
+                conv_class(16 * hidden_features, 32 * hidden_features, **kwargs),
+                nn.LeakyReLU(),
+                conv_class(32 * hidden_features, 32 * hidden_features, **kwargs),
+                nn.LeakyReLU(),
+                conv_class(32 * hidden_features, 32 * hidden_features, **kwargs),
+                nn.LeakyReLU(),
+                conv_class(32 * hidden_features, 32 * hidden_features, **kwargs),
+                nn.LeakyReLU(),
+                conv_class(32 * hidden_features, net_out_features, 1),
+            )
+
+        else:
+            raise NotImplementedError(
+                f"Haven't implemented convolutional encoder for resolution {in_resolution}"
+            )
+
+        return net
+
+
+class ImageResNetEncoder(BaseImageEncoder):
+    def __init__(
+        self,
+        in_features,
+        out_features,
+        in_resolution=64,
+        hidden_features=64,
+        batchnorm=True,
+        batchnorm_epsilon=0.1,
+        conv_class=nn.Conv2d,
+        mlp_layers=0,
+        mlp_hidden=64,
+        min_std=0.0,
+        elementwise_layers=1,
+        elementwise_hidden=16,
+        permutation=0,
+    ):
+        super().__init__(
+            out_features,
+            mlp_layers,
+            mlp_hidden,
+            min_std,
+            elementwise_layers,
+            elementwise_hidden,
+            permutation,
+        )
+
+        self.net = self._make_conv_net(
+            batchnorm,
+            batchnorm_epsilon,
+            conv_class,
+            hidden_features,
+            in_features,
+            mlp_hidden,
+            mlp_layers,
+            out_features,
+            in_resolution,
+        )
+
+    def _make_conv_net(
+        self,
+        batchnorm,
+        batchnorm_epsilon,
+        conv_class,
+        hidden_features,
+        in_features,
+        mlp_hidden,
+        mlp_layers,
+        out_features,
+        in_resolution,
+    ):
+        net_out_features = mlp_hidden if mlp_layers > 0 else 2 * out_features
+        kwargs = {
+            "batchnorm": batchnorm,
+            "batchnorm_epsilon": batchnorm_epsilon,
+            "conv_class": conv_class,
+        }
+
+        if in_resolution == 64:
+            net = nn.Sequential(
+                ResNetDown(in_features, hidden_features, **kwargs),
+                ResNetDown(hidden_features, 2 * hidden_features, **kwargs),
+                ResNetDown(2 * hidden_features, 4 * hidden_features, **kwargs),
+                ResNetDown(4 * hidden_features, 8 * hidden_features, **kwargs),
+                ResNetDown(8 * hidden_features, 8 * hidden_features, **kwargs),
+                ResNetDown(8 * hidden_features, 8 * hidden_features, **kwargs),
+                conv_class(8 * hidden_features, net_out_features, 1),
+            )
+        elif in_resolution == 128:
+            net = nn.Sequential(
+                ResNetDown(in_features, hidden_features, **kwargs),
+                ResNetDown(hidden_features, 2 * hidden_features, **kwargs),
+                ResNetDown(2 * hidden_features, 4 * hidden_features, **kwargs),
+                ResNetDown(4 * hidden_features, 8 * hidden_features, **kwargs),
+                ResNetDown(8 * hidden_features, 16 * hidden_features, **kwargs),
+                ResNetDown(16 * hidden_features, 16 * hidden_features, **kwargs),
+                ResNetDown(16 * hidden_features, 16 * hidden_features, **kwargs),
+                conv_class(16 * hidden_features, net_out_features, 1),
+            )
+        elif in_resolution == 512:
+            net = nn.Sequential(
+                ResNetDown(in_features, hidden_features, **kwargs),
+                ResNetDown(hidden_features, 2 * hidden_features, **kwargs),
+                ResNetDown(2 * hidden_features, 4 * hidden_features, **kwargs),
+                ResNetDown(4 * hidden_features, 8 * hidden_features, **kwargs),
+                ResNetDown(8 * hidden_features, 16 * hidden_features, **kwargs),
+                ResNetDown(16 * hidden_features, 32 * hidden_features, **kwargs),
+                ResNetDown(32 * hidden_features, 32 * hidden_features, **kwargs),
+                ResNetDown(32 * hidden_features, 32 * hidden_features, **kwargs),
+                ResNetDown(32 * hidden_features, 32 * hidden_features, **kwargs),
+                conv_class(32 * hidden_features, net_out_features, 1),
+            )
+
+        else:
+            raise NotImplementedError(
+                f"Haven't implemented convolutional encoder for resolution {in_resolution}"
+            )
+
+        return net
+
+
+class BaseImageDecoder(nn.Module):
     """
     Decoder block
     """
@@ -308,12 +499,6 @@ class ImageDecoder(nn.Module):
     def __init__(
         self,
         in_features,
-        out_features,
-        out_resolution=64,
-        hidden_features=64,
-        batchnorm=True,
-        batchnorm_epsilon=0.1,
-        conv_class=nn.Conv2d,
         fix_std=False,
         min_std=1e-3,
         mlp_layers=2,
@@ -336,71 +521,8 @@ class ImageDecoder(nn.Module):
         hidden_units = [in_features] + [mlp_hidden] * mlp_layers
         self.mlp = make_mlp(hidden_units, activation="leaky_relu", final_activation="leaky_relu")
 
-        self.net = self._create_conv_net(
-            batchnorm,
-            batchnorm_epsilon,
-            conv_class,
-            fix_std,
-            hidden_features,
-            in_features,
-            mlp_hidden,
-            mlp_layers,
-            out_features,
-            out_resolution,
-        )
         self.fix_std = fix_std
         self.register_buffer("min_std", torch.tensor(min_std))
-
-    def _create_conv_net(
-        self,
-        batchnorm,
-        batchnorm_epsilon,
-        conv_class,
-        fix_std,
-        hidden_features,
-        in_features,
-        mlp_hidden,
-        mlp_layers,
-        out_features,
-        out_resolution,
-    ):
-        net_in_features = mlp_hidden if mlp_layers > 0 else in_features
-        feature_multiplier = 1 if fix_std else 2
-        kwargs = {
-            "batchnorm": batchnorm,
-            "batchnorm_epsilon": batchnorm_epsilon,
-            "conv_class": conv_class,
-        }
-
-        if out_resolution == 64:
-            net = nn.Sequential(
-                ResNetUp(net_in_features, hidden_features * 8, **kwargs),
-                ResNetUp(hidden_features * 8, hidden_features * 8, **kwargs),
-                ResNetUp(hidden_features * 8, hidden_features * 4, **kwargs),
-                ResNetUp(hidden_features * 4, hidden_features * 2, **kwargs),
-                ResNetUp(hidden_features * 2, hidden_features, **kwargs),
-                ResNetUp(hidden_features, hidden_features // 2, **kwargs),
-                conv_class(hidden_features // 2, feature_multiplier * out_features, 1),
-            )
-        elif out_resolution == 512:
-            net = nn.Sequential(
-                ResNetUp(net_in_features, hidden_features * 32, **kwargs),
-                ResNetUp(hidden_features * 32, hidden_features * 32, **kwargs),
-                ResNetUp(hidden_features * 32, hidden_features * 32, **kwargs),
-                ResNetUp(hidden_features * 32, hidden_features * 16, **kwargs),
-                ResNetUp(hidden_features * 16, hidden_features * 8, **kwargs),
-                ResNetUp(hidden_features * 8, hidden_features * 4, **kwargs),
-                ResNetUp(hidden_features * 4, hidden_features * 2, **kwargs),
-                ResNetUp(hidden_features * 2, hidden_features, **kwargs),
-                ResNetUp(hidden_features, hidden_features // 2, **kwargs),
-                conv_class(hidden_features // 2, feature_multiplier * out_features, 1),
-            )
-        else:
-            raise NotImplementedError(
-                f"Haven't implemented convolutional decoder for resolution {out_resolution}"
-            )
-
-        return net
 
     def forward(
         self,
@@ -456,3 +578,222 @@ class ImageDecoder(nn.Module):
         """Freeze convolutional net and MLP, but not elementwise transformation"""
         for parameter in chain(self.mlp.parameters(), self.net.parameters()):
             parameter.requires_grad = False
+
+
+class ImageResNetDecoder(BaseImageDecoder):
+    """
+    Decoder block
+    """
+
+    def __init__(
+        self,
+        in_features,
+        out_features,
+        out_resolution=64,
+        hidden_features=64,
+        batchnorm=True,
+        batchnorm_epsilon=0.1,
+        conv_class=nn.Conv2d,
+        fix_std=False,
+        min_std=1e-3,
+        mlp_layers=2,
+        mlp_hidden=64,
+        elementwise_layers=1,
+        elementwise_hidden=16,
+        permutation=0,
+    ):
+        super().__init__(
+            in_features,
+            fix_std,
+            min_std,
+            mlp_layers,
+            mlp_hidden,
+            elementwise_layers,
+            elementwise_hidden,
+            permutation,
+        )
+
+        self.net = self._create_conv_net(
+            batchnorm,
+            batchnorm_epsilon,
+            conv_class,
+            fix_std,
+            hidden_features,
+            in_features,
+            mlp_hidden,
+            mlp_layers,
+            out_features,
+            out_resolution,
+        )
+
+    def _create_conv_net(
+        self,
+        batchnorm,
+        batchnorm_epsilon,
+        conv_class,
+        fix_std,
+        hidden_features,
+        in_features,
+        mlp_hidden,
+        mlp_layers,
+        out_features,
+        out_resolution,
+    ):
+        net_in_features = mlp_hidden if mlp_layers > 0 else in_features
+        feature_multiplier = 1 if fix_std else 2
+        kwargs = {
+            "batchnorm": batchnorm,
+            "batchnorm_epsilon": batchnorm_epsilon,
+            "conv_class": conv_class,
+        }
+
+        if out_resolution == 64:
+            net = nn.Sequential(
+                ResNetUp(net_in_features, hidden_features * 8, **kwargs),
+                ResNetUp(hidden_features * 8, hidden_features * 8, **kwargs),
+                ResNetUp(hidden_features * 8, hidden_features * 4, **kwargs),
+                ResNetUp(hidden_features * 4, hidden_features * 2, **kwargs),
+                ResNetUp(hidden_features * 2, hidden_features, **kwargs),
+                ResNetUp(hidden_features, hidden_features // 2, **kwargs),
+                conv_class(hidden_features // 2, feature_multiplier * out_features, 1),
+            )
+        elif out_resolution == 128:
+            net = nn.Sequential(
+                ResNetUp(net_in_features, hidden_features * 16, **kwargs),
+                ResNetUp(hidden_features * 16, hidden_features * 16, **kwargs),
+                ResNetUp(hidden_features * 16, hidden_features * 8, **kwargs),
+                ResNetUp(hidden_features * 8, hidden_features * 4, **kwargs),
+                ResNetUp(hidden_features * 4, hidden_features * 2, **kwargs),
+                ResNetUp(hidden_features * 2, hidden_features, **kwargs),
+                ResNetUp(hidden_features, hidden_features // 2, **kwargs),
+                conv_class(hidden_features // 2, feature_multiplier * out_features, 1),
+            )
+        elif out_resolution == 512:
+            net = nn.Sequential(
+                ResNetUp(net_in_features, hidden_features * 32, **kwargs),
+                ResNetUp(hidden_features * 32, hidden_features * 32, **kwargs),
+                ResNetUp(hidden_features * 32, hidden_features * 32, **kwargs),
+                ResNetUp(hidden_features * 32, hidden_features * 16, **kwargs),
+                ResNetUp(hidden_features * 16, hidden_features * 8, **kwargs),
+                ResNetUp(hidden_features * 8, hidden_features * 4, **kwargs),
+                ResNetUp(hidden_features * 4, hidden_features * 2, **kwargs),
+                ResNetUp(hidden_features * 2, hidden_features, **kwargs),
+                ResNetUp(hidden_features, hidden_features // 2, **kwargs),
+                conv_class(hidden_features // 2, feature_multiplier * out_features, 1),
+            )
+        else:
+            raise NotImplementedError(
+                f"Haven't implemented convolutional decoder for resolution {out_resolution}"
+            )
+
+        return net
+
+
+class ImageSBDecoder(BaseImageDecoder):
+    """
+    Decoder block
+    """
+
+    def __init__(
+        self,
+        in_features,
+        out_features,
+        out_resolution=64,
+        hidden_features=64,
+        conv_class=nn.Conv2d,
+        fix_std=False,
+        min_std=1e-3,
+        mlp_layers=2,
+        mlp_hidden=64,
+        elementwise_layers=1,
+        elementwise_hidden=16,
+        permutation=0,
+    ):
+        super().__init__(
+            in_features,
+            fix_std,
+            min_std,
+            mlp_layers,
+            mlp_hidden,
+            elementwise_layers,
+            elementwise_hidden,
+            permutation,
+        )
+
+        self.net = self._create_conv_net(
+            conv_class,
+            fix_std,
+            hidden_features,
+            in_features,
+            mlp_hidden,
+            mlp_layers,
+            out_features,
+            out_resolution,
+        )
+
+    def _create_conv_net(
+        self,
+        conv_class,
+        fix_std,
+        hidden_features,
+        in_features,
+        mlp_hidden,
+        mlp_layers,
+        out_features,
+        out_resolution,
+    ):
+        net_in_features = mlp_hidden if mlp_layers > 0 else in_features
+        feature_multiplier = 1 if fix_std else 2
+        kwargs = {
+            "kernel_size": 3,
+            "stride": 1,
+            "padding": 1,
+        }
+        if out_resolution == 64:
+            net = nn.Sequential(
+                Tile(tile_resolution=out_resolution),
+                AddCoords(h=out_resolution, w=out_resolution),
+                conv_class(net_in_features + 2, hidden_features * 8, **kwargs),
+                # conv_class(net_in_features + 2, hidden_features * 16, **kwargs),
+                nn.LeakyReLU(),
+                conv_class(hidden_features * 8, hidden_features * 8, **kwargs),
+                # conv_class(hidden_features * 16, hidden_features * 8, **kwargs),
+                nn.LeakyReLU(),
+                conv_class(hidden_features * 8, hidden_features * 4, **kwargs),
+                nn.LeakyReLU(),
+                conv_class(hidden_features * 4, hidden_features * 2, **kwargs),
+                nn.LeakyReLU(),
+                conv_class(hidden_features * 2, hidden_features, **kwargs),
+                nn.LeakyReLU(),
+                conv_class(hidden_features, hidden_features // 2, **kwargs),
+                nn.LeakyReLU(),
+                conv_class(hidden_features // 2, feature_multiplier * out_features, 1),
+            )
+        elif out_resolution == 128:
+            net = nn.Sequential(
+                Tile(tile_resolution=out_resolution),
+                AddCoords(h=out_resolution, w=out_resolution),
+                conv_class(net_in_features + 2, hidden_features * 16, **kwargs),
+                nn.LeakyReLU(),
+                conv_class(hidden_features * 16, hidden_features * 16, **kwargs),
+                nn.LeakyReLU(),
+                conv_class(hidden_features * 16, hidden_features * 8, **kwargs),
+                nn.LeakyReLU(),
+                conv_class(hidden_features * 8, hidden_features * 4, **kwargs),
+                nn.LeakyReLU(),
+                conv_class(hidden_features * 4, hidden_features * 2, **kwargs),
+                nn.LeakyReLU(),
+                conv_class(hidden_features * 2, hidden_features, **kwargs),
+                nn.LeakyReLU(),
+                conv_class(hidden_features, hidden_features // 2, **kwargs),
+                nn.LeakyReLU(),
+                conv_class(hidden_features // 2, feature_multiplier * out_features, 1),
+            )
+        # elif out_resolution == 512:
+        #     pass
+        else:
+            raise NotImplementedError(
+                f"Haven't implemented convolutional decoder for resolution {out_resolution}"
+            )
+
+        return net
