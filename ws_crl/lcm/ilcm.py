@@ -114,16 +114,6 @@ class ILCM(BaseLCM):
             e1_mean, e1_std, e2_mean, e2_std, feature_dims, x1, x2, beta=beta
         )
 
-        # Pretraining
-        if pretrain:
-            return self.forward_pretrain(
-                x1,
-                x2,
-                beta=pretrain_beta,
-                full_likelihood=full_likelihood,
-                likelihood_reduction=likelihood_reduction,
-            )
-
         # Iterate over interventions
         log_posterior_eps, log_prior_eps = 0, 0
         log_posterior_int, log_prior_int, log_likelihood = 0, 0, 0
